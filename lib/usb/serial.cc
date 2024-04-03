@@ -33,6 +33,7 @@ public:
         DCB dcb = {.DCBlength = sizeof(DCB),
             .BaudRate = CBR_9600,
             .fBinary = true,
+            .fDtrControl =  DTR_CONTROL_ENABLE,
             .ByteSize = 8,
             .Parity = NOPARITY,
             .StopBits = ONESTOPBIT};
@@ -41,12 +42,6 @@ public:
         COMMTIMEOUTS commtimeouts = {0};
         commtimeouts.ReadIntervalTimeout = 100;
         SetCommTimeouts(_handle, &commtimeouts);
-
-        if (!EscapeCommFunction(_handle, CLRDTR))
-            error("Couldn't clear DTR: {}", get_last_error_string());
-        Sleep(200);
-        if (!EscapeCommFunction(_handle, SETDTR))
-            error("Couldn't set DTR: {}", get_last_error_string());
 
         PurgeComm(_handle,
             PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
@@ -90,12 +85,9 @@ public:
 
     void setBaudRate(int baudRate) override
     {
-        DCB dcb = {.DCBlength = sizeof(DCB),
-            .BaudRate = baudRate,
-            .fBinary = true,
-            .ByteSize = 8,
-            .Parity = NOPARITY,
-            .StopBits = ONESTOPBIT};
+        DCB dcb;
+        GetCommState(_handle, &dcb);
+        dcb.BaudRate = baudRate;
         SetCommState(_handle, &dcb);
 
         if (!EscapeCommFunction(_handle, CLRDTR))
